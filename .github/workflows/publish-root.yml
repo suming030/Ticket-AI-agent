@@ -1,0 +1,52 @@
+name: Publish React build to repository root (Pages branch fallback)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/publish-root.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-root
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+      - name: Build React website
+        working-directory: frontend
+        run: npm run build
+      - name: Stage built site for branch-mode GitHub Pages
+        run: |
+          cp frontend/dist/index.html ./index.html
+          mkdir -p ./assets
+          cp -R frontend/dist/assets/. ./assets/
+          touch .nojekyll
+          git add -f index.html assets .nojekyll
+      - name: Commit generated site if changed
+        run: |
+          if git diff --cached --quiet; then
+            echo "Static site is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Publish compiled React site to repository root"
+          git push origin HEAD:main
