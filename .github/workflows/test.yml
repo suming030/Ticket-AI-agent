@@ -1,0 +1,44 @@
+name: 1단계 Mock 검증
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+      - name: 백엔드 pytest
+        working-directory: backend
+        run: |
+          uv sync --python 3.12
+          uv run pytest -q
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 프론트엔드 설치
+        working-directory: frontend
+        run: npm install
+      - name: 정적 빌드 검사
+        working-directory: frontend
+        run: npm run build
+      - name: 브라우저 설치
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: E2E 테스트
+        working-directory: frontend
+        run: npm run test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ticket-ai-agent-screenshots-and-test-results
+          path: frontend/test-results/
