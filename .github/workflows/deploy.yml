@@ -1,0 +1,41 @@
+name: Ticket AI Agent 웹사이트 배포
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: ticket-ai-agent-pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 프론트엔드 의존성 설치
+        working-directory: frontend
+        run: npm install
+      - name: 정적 사이트 빌드
+        working-directory: frontend
+        run: npm run build
+      - name: Pages 설정 확인
+        uses: actions/configure-pages@v5
+      - name: 웹사이트 업로드
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: frontend/dist
+      - name: GitHub Pages 배포
+        uses: actions/deploy-pages@v4
+        id: deployment
